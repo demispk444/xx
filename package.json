@@ -1,18 +1,28 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "browser-data-synthesis-tool",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "electron-main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron": "electron .",
+    "electron-dev": "NODE_ENV=development electron .",
+    "electron-build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
   },
   "dependencies": {
+    "@types/sql.js": "^1.4.9",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sql.js": "^1.13.0",
+    "lz4js": "^0.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

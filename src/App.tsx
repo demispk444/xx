@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { BrowserDataViewer } from './components/BrowserDataViewer';
 import { ProfileDiscovery } from './components/ProfileDiscovery';
 import { ProfileManager } from './components/ProfileManager';
 import { MergeConfiguration } from './components/MergeConfiguration';
@@ -7,13 +8,14 @@ import { ProfileComparison } from './components/ProfileComparison';
 import { BackupManager } from './components/BackupManager';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
-import { FirefoxProfile, MergeConfig, ConflictResolution, MergeDataType, CompressionType } from './types/types';
+import { FirefoxProfile, DiscoveryResult, MergeConfig, ConflictResolution, MergeDataType, CompressionType, BrowserType } from './types/types';
 
-type ActiveView = 'discovery' | 'manager' | 'configuration' | 'progress' | 'comparison' | 'backup';
+type ActiveView = 'discovery' | 'manager' | 'configuration' | 'progress' | 'comparison' | 'backup' | 'dataviewer' | 'mergeddataviewer';
 
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('discovery');
   const [profiles, setProfiles] = useState<FirefoxProfile[]>([]);
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<FirefoxProfile[]>([]);
   const [mergeConfig, setMergeConfig] = useState<MergeConfig>({
     mergeTypes: [MergeDataType.ALL],
@@ -26,10 +28,17 @@ function App() {
     sessionRecovery: true
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [mergedPreviewData, setMergedPreviewData] = useState<any | null>(null);
 
-  const handleProfilesDiscovered = (discoveredProfiles: FirefoxProfile[]) => {
-    setProfiles(discoveredProfiles);
-    setActiveView('manager');
+  const handleDataSourcesDiscovered = (result: DiscoveryResult) => {
+    setDiscoveryResult(result);
+    // Convert browser profiles to Firefox profiles for backward compatibility
+    const firefoxProfiles = result.browserProfiles
+      .filter(p => p.browserType === BrowserType.FIREFOX)
+      .map(p => ({ ...p, firefoxVersion: p.browserVersion } as FirefoxProfile));
+    setProfiles(firefoxProfiles);
+    // Go directly to the new NirSoft-style data viewer
+    setActiveView('dataviewer');
   };
 
   const handleProfileSelection = (profiles: FirefoxProfile[]) => {
@@ -45,15 +54,16 @@ function App() {
     setIsProcessing(true);
   };
 
-  const handleMergeComplete = () => {
+  const handleMergeComplete = (mergedData: any) => {
+    setMergedPreviewData(mergedData);
     setIsProcessing(false);
-    setActiveView('manager');
+    setActiveView('mergeddataviewer');
   };
 
   const renderContent = () => {
     switch (activeView) {
       case 'discovery':
-        return <ProfileDiscovery onProfilesDiscovered={handleProfilesDiscovered} />;
+        return <ProfileDiscovery onDataSourcesDiscovered={handleDataSourcesDiscovered} />;
       case 'manager':
         return (
           <ProfileManager
@@ -70,7 +80,7 @@ function App() {
             config={mergeConfig}
             onConfigChange={setMergeConfig}
             onBack={() => setActiveView('manager')}
-            onContinue={() => setActiveView('manager')}
+            onContinue={handleStartMerge}
           />
         );
       case 'progress':
@@ -95,8 +105,20 @@ function App() {
             onBack={() => setActiveView('manager')}
           />
         );
+      case 'dataviewer':
+        return discoveryResult ? (
+          <BrowserDataViewer profiles={discoveryResult.browserProfiles} />
+        ) : (
+          <div className="text-center py-8">No data sources discovered yet</div>
+        );
+      case 'mergeddataviewer':
+        return mergedPreviewData ? (
+          <BrowserDataViewer profiles={mergedPreviewData} />
+        ) : (
+          <div className="text-center py-8">No merged data to display.</div>
+        );
       default:
-        return <ProfileDiscovery onProfilesDiscovered={handleProfilesDiscovered} />;
+        return <ProfileDiscovery onDataSourcesDiscovered={handleDataSourcesDiscovered} />;
     }
   };
 
